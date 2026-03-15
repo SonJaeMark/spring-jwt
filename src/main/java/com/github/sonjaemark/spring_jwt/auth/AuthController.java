@@ -23,4 +23,15 @@ public class AuthController {
         return authService.register(request);
     }
 
+    @PostMapping("/refresh")
+    public AuthResponse refresh(@RequestBody String refreshToken) {
+
+        return authService.refreshToken(refreshToken);
+    }
+
+    @PostMapping("/logout")
+    public void logout(@RequestBody String refreshToken) {
+        authService.logout(refreshToken);
+    }
+
 }

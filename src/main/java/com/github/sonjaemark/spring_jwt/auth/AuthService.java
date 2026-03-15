@@ -3,6 +3,8 @@ package com.github.sonjaemark.spring_jwt.auth;
 import com.github.sonjaemark.spring_jwt.dto.AuthResponse;
 import com.github.sonjaemark.spring_jwt.dto.LoginRequest;
 import com.github.sonjaemark.spring_jwt.dto.RegisterRequest;
+import com.github.sonjaemark.spring_jwt.token.RefreshToken;
+import com.github.sonjaemark.spring_jwt.token.RefreshTokenRepository;
 import com.github.sonjaemark.spring_jwt.user.Role;
 import com.github.sonjaemark.spring_jwt.user.User;
 import com.github.sonjaemark.spring_jwt.user.UserRepository;
@@ -28,6 +30,12 @@ public class AuthService {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
+    @Autowired
+    private RefreshTokenService refreshTokenService;
+
+    @Autowired
+    private RefreshTokenRepository refreshTokenRepository;
+
     public AuthResponse login(LoginRequest request) {
 
         authenticationManager.authenticate(
@@ -41,11 +49,15 @@ public class AuthService {
             .findByUsername(request.getUsername())
             .orElseThrow();
 
-        String token =
+        String accessToken =
             jwtService.generateToken(user.getId(), user.getUsername());
 
+        RefreshToken refreshToken =
+            refreshTokenService.createRefreshToken(user.getId());
+
         return new AuthResponse(
-            token,
+            accessToken,
+            refreshToken.getToken(),
             user.getId(),
             user.getUsername(),
             user.getRole().name()
@@ -56,20 +68,45 @@ public class AuthService {
 
         User user = User.builder()
             .username(request.getUsername())
+            .email(request.getEmail())
             .password(passwordEncoder.encode(request.getPassword()))
             .role(request.getRole() != null ? request.getRole() : Role.USER)
             .build();
 
         userRepository.save(user);
 
-        String token =
+        return AuthResponse.builder()
+            .userId(user.getId())
+            .username(user.getUsername())
+            .role(user.getRole().name())
+            .build();
+    }
+
+    public AuthResponse refreshToken(String requestToken) {
+
+        RefreshToken refreshToken =
+            refreshTokenRepository.findByToken(requestToken)
+            .orElseThrow(() -> new RuntimeException("Invalid refresh token"));
+
+        refreshTokenService.verifyExpiration(refreshToken);
+
+        User user = refreshToken.getUser();
+
+        String accessToken =
             jwtService.generateToken(user.getId(), user.getUsername());
 
         return new AuthResponse(
-            token,
+            accessToken,
+            requestToken,
             user.getId(),
             user.getUsername(),
             user.getRole().name()
         );
+    }
+
+    public void logout(String refreshToken) {
+        refreshTokenRepository
+            .findByToken(refreshToken)
+            .ifPresent(refreshTokenRepository::delete);
     }
 }

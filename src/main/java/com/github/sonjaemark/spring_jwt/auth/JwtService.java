@@ -4,6 +4,8 @@ import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.stereotype.Service;
 
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.Date;
 
 import javax.crypto.SecretKey;
@@ -24,7 +26,7 @@ public class JwtService {
         .claim("userId", userId)
         .subject(username)
         .issuedAt(new Date())
-        .expiration(new Date(System.currentTimeMillis() + 86400000))
+        .expiration(Date.from(Instant.now().plus(15, ChronoUnit.MINUTES)))
         .signWith(getKey())
         .compact();
     }
