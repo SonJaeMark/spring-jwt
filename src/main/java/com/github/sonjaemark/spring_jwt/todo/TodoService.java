@@ -2,11 +2,13 @@ package com.github.sonjaemark.spring_jwt.todo;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
+import com.github.sonjaemark.spring_jwt.dto.TodoResponse;
 import com.github.sonjaemark.spring_jwt.user.User;
 import com.github.sonjaemark.spring_jwt.user.UserRepository;
 
@@ -19,6 +21,8 @@ public class TodoService {
     @Autowired
     private UserRepository userRepository;
 
+    private TodoResponse todoResponse;
+
     private User getCurrentUser() {
 
         String username = SecurityContextHolder
@@ -30,7 +34,7 @@ public class TodoService {
             .orElseThrow(() -> new RuntimeException("User not found"));
     }
 
-    public Todo createTask(String task) {
+    public TodoResponse createTask(String task) {
 
         User user = getCurrentUser();
 
@@ -40,17 +44,33 @@ public class TodoService {
             .user(user)
         .build();
 
-        return todoRepository.save(todo);
+        todoResponse = TodoResponse.builder()
+            .task(task)
+            .createdAt(LocalDateTime.now())
+            .username(user.getUsername())
+            .isDone(false)
+        .build();
+
+        todoRepository.save(todo);
+        return todoResponse;
     }
 
-    public List<Todo> getAllTasks() {
+    public List<TodoResponse> getAllTasks() {
 
         User user = getCurrentUser();
 
-        return todoRepository.findByUser(user);
+        return todoRepository.findByUser(user).stream()
+            .map(todo -> TodoResponse.builder()
+                .id(todo.getId())
+                .task(todo.getTask())
+                .isDone(todo.getIsDone())
+                .createdAt(todo.getCreatedAt())
+                .username(todo.getUser().getUsername())
+                .build())
+            .collect(Collectors.toList());
     }
 
-    public Todo updateTask(Long id, String task) {
+    public TodoResponse updateTask(Long id, String task) {
 
         User user = getCurrentUser();
 
@@ -62,10 +82,19 @@ public class TodoService {
         }
 
         todo.setTask(task);
-        return todoRepository.save(todo);
+
+        todoRepository.save(todo);
+
+        return TodoResponse.builder()
+            .id(todo.getId())
+            .task(task)
+            .isDone(todo.getIsDone())
+            .createdAt(todo.getCreatedAt())
+            .username(todo.getUser().getUsername())
+        .build();
     }
 
-    public Todo markAsDone(Long id) {
+    public TodoResponse markAsDone(Long id) {
 
         User user = getCurrentUser();
 
@@ -78,7 +107,15 @@ public class TodoService {
 
         todo.setIsDone(true);
 
-        return todoRepository.save(todo);
+        todoRepository.save(todo);
+
+        return TodoResponse.builder()
+            .id(todo.getId())
+            .task(todo.getTask())
+            .isDone(todo.getIsDone())
+            .createdAt(todo.getCreatedAt())
+            .username(todo.getUser().getUsername())
+        .build();
     }
 
     public void deleteTask(Long id) {

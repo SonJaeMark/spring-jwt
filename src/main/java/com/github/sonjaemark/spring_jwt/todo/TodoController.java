@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import com.github.sonjaemark.spring_jwt.dto.TodoRequest;
+import com.github.sonjaemark.spring_jwt.dto.TodoResponse;
 
 @RestController
 @RequestMapping("/api/todos/v1")
@@ -15,17 +16,17 @@ public class TodoController {
     private TodoService todoService;
 
     @PostMapping("/create")
-    public Todo create(@RequestBody TodoRequest request) {
+    public TodoResponse create(@RequestBody TodoRequest request) {
         return todoService.createTask(request.getTask());
     }
 
     @GetMapping
-    public List<Todo> getAll() {
+    public List<TodoResponse> getAll() {
         return todoService.getAllTasks();
     }
 
     @PutMapping("/update/{id}")
-    public Todo update(
+    public TodoResponse update(
             @PathVariable Long id,
             @RequestBody TodoRequest request) {
 
@@ -33,7 +34,7 @@ public class TodoController {
     }
 
     @PutMapping("/done/{id}")
-    public Todo markDone(@PathVariable Long id) {
+    public TodoResponse markDone(@PathVariable Long id) {
 
         return todoService.markAsDone(id);
     }
